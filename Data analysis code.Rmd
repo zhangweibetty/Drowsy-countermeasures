@@ -1,0 +1,1520 @@
+---
+title: "LMM"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 5
+    toc_float: True
+date: '2024-08-02'
+---
+
+# load packages for Linear Mixed Model analysis
+```{r setup, include=FALSE}
+if(!require(rstatix)) install.packages("rstatix")
+library(rstatix)
+
+if(!require(readxl)) install.packages("readxl")
+library(readxl)
+
+if(!require(writexl)) install.packages("writexl")
+library(writexl)
+
+if(!require(lmerTest)) install.packages("lmerTest")
+library(lmerTest)
+
+if(!require(magrittr)) install.packages("magrittr")
+library(magrittr)
+
+if(!require(dplyr)) install.packages("dplyr")
+library(dplyr)
+
+if(!require(reshape2)) install.packages("reshape2")
+library(reshape2)
+
+```
+
+# 3 Result (The following headings respond to the manuscript sections)
+## 3.1 Manipulation checks and results
+### 3.1.1 KSS ratings
+```{r}
+# read data
+KSSdata <- read_excel("/Users/betty/Desktop/KSS(processed).xlsx", sheet=1)
+
+
+# as factors
+KSSdata$condition <- as.factor(KSSdata$condition)
+KSSdata$`agegroup2` <- as.factor(KSSdata$`agegroup2`)
+KSSdata$beforeafter <- as.factor(KSSdata$beforeafter)
+
+# groupby
+KSSdata %>%
+  group_by(condition, `agegroup2`, beforeafter)
+
+
+# younger drivers
+filter.young<- filter(KSSdata, agegroup2 =="Y") 
+## main effect of countermeasures for before countermeasure
+filter1<- filter(filter.young, beforeafter =="before") 
+res.fried.KSS.young.before <- filter1 %>% friedman_test(score ~ condition |sub)
+res.fried.KSS.young.before
+## post hoc analysis of countermeasures for before countermeasure
+pwc.KSS.inter.young.before <- filter1 %>% wilcox_test(score ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.KSS.inter.young.before
+## main effect of countermeasures for after countermeasure
+filter1<- filter(filter.young, beforeafter =="after") 
+res.fried.KSS.young.after <- filter1 %>% friedman_test(score ~ condition |sub)
+res.fried.KSS.young.after
+## post hoc analysis of countermeasures for after countermeasure
+pwc.KSS.inter.young.after <- filter1 %>% wilcox_test(score ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.KSS.inter.young.after
+
+
+# middle-aged drivers
+filter.elder<- filter(KSSdata, agegroup2 =="M") 
+## main effect of countermeasures for before countermeasure
+filter1<- filter(filter.elder, beforeafter =="before") 
+res.fried.KSS.middle.before <- filter1 %>% friedman_test(score ~ condition |sub)
+res.fried.KSS.middle.before
+## post hoc analysis of countermeasures for before countermeasure
+pwc.KSS.inter.middle.before <- filter1 %>% wilcox_test(score ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.KSS.inter.middle.before
+## main effect of countermeasures for after countermeasure
+filter1<- filter(filter.elder, beforeafter =="after") 
+res.fried.KSS.middle.after <- filter1 %>% friedman_test(score ~ condition |sub)
+res.fried.KSS.middle.after
+## post hoc analysis of countermeasures for after countermeasure
+pwc.KSS.inter.middle.after <- filter1 %>% wilcox_test(score ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.KSS.inter.middle.after
+```
+
+### 3.1.2 PVT accuracy
+```{r}
+# read data
+databutton <- read_excel("/Users/betty/Desktop/buttonprocessed.xlsx", sheet=1)
+databutton  <- select(databutton,"sub","agegroup2","week","condition","order","beforeafter","score2")
+
+# as factors
+databutton$condition <- as.factor(databutton$condition)
+databutton$beforeafter <- as.factor(databutton$beforeafter)
+databutton$agegroup2 <- as.factor(databutton$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(score2 ~ condition, databutton)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+library(car)
+leveneTest(res_lmmodel, databutton$condition)
+
+
+# younger drivers
+filter.Y <- filter(databutton, agegroup2 =="Y") 
+## main effect of countermeasures for before countermeasure
+filter1.before <- filter(filter.Y, beforeafter =="beforeintervene") 
+Model <- lmer(data = filter1.before, score2 ~condition +(1|sub) )
+summary(Model)
+anova(Model)
+## post hoc analysis of countermeasures for before countermeasure
+pwc.PVT.inter.young.before <- filter1.before %>% pairwise_t_test(score2 ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVT.inter.young.before 
+## main effect of countermeasures for after countermeasure
+filter1.after<- filter(filter.Y, beforeafter =="afterintervene") 
+Model.PVT.2 <- lmer(data = filter1.after, score2~condition +(1|sub) )
+summary(Model.PVT.2)
+anova(Model.PVT.2)
+## post hoc analysis of countermeasures for after countermeasure
+pwc.PVT.inter.young.after <- filter1.after %>% pairwise_t_test(score2 ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVT.inter.young.after 
+
+# middle-aged group
+filter.M <- filter(databutton, agegroup2 =="M") 
+## main effect of countermeasures for before countermeasure
+filter1.before <- filter(filter.M, beforeafter =="beforeintervene") 
+Model <- lmer(data = filter1.before, score2 ~condition +(1|sub) )
+summary(Model)
+anova(Model)
+## post hoc analysis of countermeasures for before countermeasure
+pwc.PVT.inter.middle.before <- filter1.before %>% pairwise_t_test(score2 ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVT.inter.middle.before
+## main effect of countermeasures for after countermeasure
+filter1.after<- filter(filter.M, beforeafter =="afterintervene") 
+Model <- lmer(data = filter1.after, score2~condition +(1|sub) )
+summary(Model)
+anova(Model)
+## post hoc analysis of countermeasures for after countermeasure
+pwc.PVT.inter.middle.after <- filter1.after %>% pairwise_t_test(score2 ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVT.inter.middle.after
+```
+
+## 3.2 Driving performance 
+### 3.2.1 SDLP
+```{r, echo=FALSE}
+# read data
+SDLPdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+SDLPdata  <- dplyr::select(SDLPdata ,"sub","age","agegroup2","condition","order","beforeafter", "SDLP")
+
+# as factors
+SDLPdata$condition <- as.factor(SDLPdata$condition)
+SDLPdata$beforeafter <- as.factor(SDLPdata$beforeafter)
+SDLPdata$agegroup2 <- as.factor(SDLPdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(SDLP ~ condition*beforeafter, SDLPdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+library(car)
+leveneTest(lmmodel)
+
+## QQ plot for residual (logged data)
+lmmodel <- lm(log(SDLP) ~ condition*beforeafter, SDLPdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual (logged data)
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual (logged data)
+library(car)
+leveneTest(lmmodel)
+
+# used logged data
+SDLPdata$SDLP <- log(SDLPdata$SDLP)
+
+# Linear Mixed Model output
+Model <- lmer(data = SDLPdata, SDLP~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+SDLP <- anova(Model)
+SDLP
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(SDLPdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, SDLP~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDLP.inter.before <- filter1.before %>% pairwise_t_test(SDLP ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDLP.inter.before
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(SDLPdata, beforeafter  =="on") 
+Model <- lmer(data = filter1.on, SDLP~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDLP.inter.during <- filter1.on %>% pairwise_t_test(SDLP ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDLP.inter.during
+```
+
+### 3.2.2 SDVHA
+```{r, echo=FALSE}
+# read data
+SDVHdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+SDVHdata  <- dplyr::select(SDVHdata ,"sub","age","agegroup2","condition","order","beforeafter", "SDVH")
+
+# as factors
+SDVHdata$condition <- as.factor(SDVHdata$condition)
+SDVHdata$beforeafter <- as.factor(SDVHdata$beforeafter)
+SDVHdata$agegroup2 <- as.factor(SDVHdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(SDVH ~ condition*beforeafter, SDVHdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+## QQ plot for residual (logged data)
+lmmodel <- lm(log(SDVH) ~ condition*beforeafter, SDVHdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual (logged data)
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual (logged data)
+leveneTest(lmmodel)
+
+# used logged data
+SDVHdata$SDVH <- log(SDVHdata$SDVH)
+
+# Linear Mixed Model output
+Model <- lmer(data = SDVHdata, SDVH~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+SDVH <- anova(Model)
+SDVH
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(SDVHdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, SDVH~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDVH.inter.before <- filter1.before %>% pairwise_t_test(SDVH ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDVH.inter.before
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(SDVHdata, beforeafter  =="on") 
+Model <- lmer(data = filter1.on, SDVH~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDVH.inter.during <- filter1.on %>% pairwise_t_test(SDVH ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDVH.inter.during
+```
+
+### 3.2.3 SDspeed
+```{r, echo=FALSE}
+# read data
+SDSpeeddata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+SDSpeeddata  <- dplyr::select(SDSpeeddata,"sub","age","agegroup2","condition","order","beforeafter", "SDSpeed")
+
+# as factors
+SDSpeeddata$condition <- as.factor(SDSpeeddata$condition)
+SDSpeeddata$beforeafter <- as.factor(SDSpeeddata$beforeafter)
+SDSpeeddata$agegroup2 <- as.factor(SDSpeeddata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(SDSpeed ~ condition*beforeafter, SDSpeeddata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+## QQ plot for residual (logged data)
+lmmodel <- lm(log(SDSpeed) ~ condition*beforeafter, SDSpeeddata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual (logged data)
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual (logged data)
+leveneTest(lmmodel)
+
+# use logged data
+SDSpeeddata$SDSpeed <- log(SDSpeeddata$SDSpeed)
+
+# Linear Mixed Model output
+Model <- lmer(data = SDSpeeddata, SDSpeed~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+SDspeed <- anova(Model)
+SDspeed
+
+## the post hoc analysis for the main effect of countermeasure timing
+pwc.SDSpeed.timing <- SDSpeeddata %>% pairwise_t_test(SDSpeed ~ beforeafter, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDSpeed.timing
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter.before<- filter(SDSpeeddata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter.before, SDSpeed~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDSpeed.inter.before <- filter.before %>% pairwise_t_test(SDSpeed~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDSpeed.inter.before
+### comparisons of countermeasure types during countermeasure
+filter.during<- filter(SDSpeeddata, beforeafter  =="on") 
+Model <- lmer(data = filter.during, SDSpeed~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDSpeed.inter.during <- filter.during %>% pairwise_t_test(SDSpeed ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDSpeed.inter.during
+```
+
+## 3.3 Physiological indicators
+### 3.3.1 SCL (skin conductance level extracted from electrodermal activity (EDA))
+```{r, echo=FALSE}
+# read data
+SCLdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+SCLdata  <- dplyr::select(SCLdata ,"sub","age","agegroup2","condition","order","beforeafter", "SCL")
+
+# as factors
+SCLdata$condition <- as.factor(SCLdata$condition)
+SCLdata$beforeafter <- as.factor(SCLdata$beforeafter)
+SCLdata$agegroup2 <- as.factor(SCLdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(SCL ~ condition*beforeafter, SCLdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+library(car)
+leveneTest(lmmodel)
+
+# Linear Mixed Model output
+Model <- lmer(data = SCLdata, SCL~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+SCL <- anova(Model)
+SCL
+
+## the post hoc analysis for the main effect of countermeasure type
+pwc.SCL.condition <- SCLdata %>% pairwise_t_test(SCL ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SCL.condition
+
+## the post hoc analysis for the main effect of countermeasure timing
+pwc.SCL.timing <- SCLdata %>% pairwise_t_test(SCL ~ beforeafter, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SCL.timing
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(SCLdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, SCL~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SCL.inter.before <- filter1.before %>% pairwise_t_test(SCL ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SCL.inter.before
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(SCLdata, beforeafter  =="on") 
+anova_test(filter1.on, wid = sub, within = c(condition), dv = SCL)
+Model <- lmer(data = filter1.on, SCL~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SCL.inter.during<- filter1.on %>% pairwise_t_test(SCL ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SCL.inter.during
+```
+
+
+### 3.3.2 SDNN (Standard Deviation of Normal-to-Normal intervals (SDNN) extracted from photoplethysmography (PPG))
+```{r, echo=FALSE}
+# read data
+SDNNdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+SDNNdata  <- dplyr::select(SDNNdata ,"sub","age","agegroup2","condition","order","beforeafter", "SDNN")
+
+# as factors
+SDNNdata$condition <- as.factor(SDNNdata$condition)
+SDNNdata$beforeafter <- as.factor(SDNNdata$beforeafter)
+SDNNdata$agegroup2 <- as.factor(SDNNdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(SDNN ~ condition*beforeafter, SDNNdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+## QQ plot for residual (logged data)
+lmmodel <- lm(log(SDNN) ~ condition*beforeafter, SDNNdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual (logged data)
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual (logged data)
+leveneTest(lmmodel)
+
+
+# use logged data
+SDNNdata$SDNN <- log (SDNNdata$SDNN)
+
+# Linear Mixed Model output
+Model <- lmer(data = SDNNdata, SDNN~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+anova(Model)
+SDNN <- anova(Model)
+SDNN
+
+## the post hoc analysis for the main effect of countermeasure timing
+pwc.SDNN.timing <- SDNNdata %>% pairwise_t_test(SDNN ~ beforeafter, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDNN.timing
+
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(SDNNdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, SDNN~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDNN.inter.before <- filter1.before %>% pairwise_t_test(SDNN ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDNN.inter.before
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(SDNNdata, beforeafter  =="on") 
+Model <- lmer(data = filter1.on, SDNN~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.SDNN.inter.during <- filter1.on %>% pairwise_t_test(SDNN ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.SDNN.inter.during
+```
+
+### 3.3.3 Breathing rate
+```{r, echo=FALSE}
+## read data
+RESPdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+RESPdata  <- dplyr::select(RESPdata ,"sub","age","agegroup2","condition","order","beforeafter", "RESP")
+
+# as factors
+RESPdata$condition <- as.factor(RESPdata$condition)
+RESPdata$beforeafter <- as.factor(RESPdata$beforeafter)
+RESPdata$agegroup2 <- as.factor(RESPdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(RESP ~ condition*beforeafter, RESPdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+## QQ plot for residual (logged data)
+lmmodel <- lm(log(RESP) ~ condition*beforeafter, RESPdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual (logged data)
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual (logged data)
+leveneTest(lmmodel)
+
+# use logged data
+RESPdata$RESP <- log(RESPdata$RESP)
+
+# Linear Mixed Model output
+Model <- lmer(data = RESPdata, RESP~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+RESP <- anova(Model)
+RESP
+```
+
+
+## 3.4 Eye movement indicators
+### 3.4.1 Pupil diameter (PD)
+```{r, echo=FALSE}
+# read data
+PDdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+PDdata  <- dplyr::select(PDdata ,"sub","age","agegroup2","condition","order","beforeafter", "PD")
+
+# as factors
+PDdata$condition <- as.factor(PDdata$condition)
+PDdata$beforeafter <- as.factor(PDdata$beforeafter)
+PDdata$agegroup2 <- as.factor(PDdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(PD ~ condition*beforeafter, PDdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+# Linear Mixed Model output
+Model <- lmer(data = PDdata, PD~agegroup2*condition*beforeafter+(1|sub))
+summary(Model)
+PD <- anova(Model)
+PD
+## the post hoc analysis for the main effect of countermeasure type
+pwc.PD.condition <- PDdata %>% pairwise_t_test(PD ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PD.condition
+
+## the post hoc analysis for the main effect of countermeasure timing
+pwc.PD.timing <- PDdata %>% pairwise_t_test(PD ~ beforeafter, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PD.timing
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(PDdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, PD~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.PD.inter.before <- filter1.before %>% pairwise_t_test(PD ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PD.inter.before
+
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(PDdata, beforeafter  =="on") 
+Model <- lmer(data = filter1.on, PD~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.PD.inter.during <- filter1.on %>% pairwise_t_test(PD ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PD.inter.during 
+```
+
+### 3.4.2 PVRC (proportion of visit duration on the road centre)
+```{r, echo=FALSE}
+## read data
+PVRCdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+PVRCdata  <- dplyr::select(PVRCdata ,"sub","age","agegroup2","condition","order","beforeafter", "PVRC")
+
+# as factors
+PVRCdata$condition <- as.factor(PVRCdata$condition)
+PVRCdata$beforeafter <- as.factor(PVRCdata$beforeafter)
+PVRCdata$agegroup2 <- as.factor(PVRCdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(PVRC ~ condition*beforeafter, PVRCdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+# Linear Mixed Model output
+Model <- lmer(data = PVRCdata, PVRC~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+PVRC <- anova(Model)
+PVRC
+## the post hoc analysis for the main effect of countermeasure timing
+pwc.PVRC.timing <- PVRCdata %>% pairwise_t_test(PVRC ~ beforeafter, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVRC.timing
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(PVRCdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, PVRC~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.PVRC.inter.before <- filter1.before %>% pairwise_t_test(PVRC ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVRC.inter.before
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(PVRCdata, beforeafter  =="on") 
+Model <- lmer(data = filter1.on, PVRC~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.PVRC.inter.during <- filter1.on %>% pairwise_t_test(PVRC ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.PVRC.inter.during
+```
+
+### 3.4.3 Blink rate (BL)
+```{r, echo=FALSE}
+# read data
+BLdata <- read_excel("/Users/betty/Desktop/Objectivedata(processed).xlsx", sheet=1)
+BLdata  <- dplyr::select(BLdata ,"sub","age","agegroup2","condition","order","beforeafter", "BL")
+
+# as factors
+BLdata$condition <- as.factor(BLdata$condition)
+BLdata$beforeafter <- as.factor(BLdata$beforeafter)
+BLdata$agegroup2 <- as.factor(BLdata$agegroup2)
+
+# Hypothesis testing
+## QQ plot for residual
+lmmodel <- lm(BL ~ condition*beforeafter, BLdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual
+leveneTest(lmmodel)
+
+## QQ plot for residual (logged data)
+lmmodel <- lm(log(BL) ~ condition*beforeafter, BLdata)
+summary(lmmodel)
+res_lmmodel <- residuals(lmmodel)
+qqnorm(res_lmmodel)
+## KS test for residual (logged data)
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene's test for residual (logged data)
+
+# use logged data
+BLdata$BL <- log(BLdata$BL)
+
+# Linear Mixed Model output
+Model <- lmer(data = BLdata, BL~condition*beforeafter*agegroup2+(1|sub))
+summary(Model)
+anova(Model)
+BL <- anova(Model)
+BL
+## the post hoc analysis for the main effect of countermeasure timing
+pwc.BL.condition <- BLdata %>% pairwise_t_test(BL ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.BL.condition
+
+## the simple effect analysis for the interaction effect of countermeasure type and countermeasure timing
+### comparisons of countermeasure types before countermeasure
+filter1.before<- filter(BLdata, beforeafter  =="beforeintervene") 
+Model <- lmer(data = filter1.before, BL~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.BL.inter.before <- filter1.before %>% pairwise_t_test(BL ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.BL.inter.before
+### comparisons of countermeasure types during countermeasure
+filter1.on<- filter(BLdata, beforeafter  =="on") 
+Model <- lmer(data = filter1.on, BL~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc.BL.inter.during <- filter1.on %>% pairwise_t_test(BL ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.BL.inter.during
+```
+
+## 3.5 Heterogeneity 
+### Packages for calculating Heterogeneity 
+```{r}
+if(!require(here)) install.packages("here")
+library(here)
+
+if(!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
+
+if(!require(dplyr)) install.packages("dplyr")
+library(dplyr)
+
+if(!require(tidyr)) install.packages("tidyr")
+library(tidyr)
+
+if(!require(viridis)) install.packages("viridis")
+library(viridis)
+
+if(!require(gridExtra)) install.packages("gridExtra")
+library(gridExtra)
+
+if(!require(readr)) install.packages("readr")
+library(readr)
+
+if(!require(plyr)) install.packages("plyr")
+library(plyr)
+
+if(!require(stringr)) install.packages("stringr")
+library(stringr)
+
+if(!require(readxl)) install.packages("readxl")
+library(readxl)
+
+if(!require(data.table)) install.packages("data.table")
+library(data.table)
+
+if(!require(lmerTest)) install.packages("lmerTest")
+library(lmerTest)
+
+if(!require(plotly)) install.packages("plotly")
+library(plotly)
+
+if(!require(zoo)) install.packages("zoo")
+library(zoo)
+
+if(!require(viridis)) install.packages("viridis")
+library(viridis)
+
+if(!require(brms)) install.packages("brms")
+library(brms)
+
+if(!require(purrr)) install.packages("purrr")
+library(purrr)
+
+if(!require(MASS)) install.packages("MASS")
+library(MASS)
+
+if(!require(rstan)) install.packages("rstan")
+library(rstan)
+
+if(!require(ggdist)) install.packages("ggdist")
+library(ggdist)
+
+if(!require(bayestestR)) install.packages("bayestestR")
+library(bayestestR)
+
+if(!require(posterior)) install.packages("posterior")
+library(posterior)
+
+if(!require(distributional)) install.packages("distributional")
+library(distributional)
+
+if(!require(cowplot)) install.packages("cowplot")
+library(cowplot)
+
+if(!require(modelr)) install.packages("modelr")
+library(modelr)
+
+if(!require(purrr)) install.packages("purrr")
+library(purrr)
+
+if(!require(forcats)) install.packages("forcats")
+library(forcats)
+
+if(!require(tidybayes)) install.packages("tidybayes")
+library(tidybayes)
+
+if(!require(bayesplot)) install.packages("bayesplot")
+library(bayesplot)
+
+if(!require(BayesFactor)) install.packages("BayesFactor")
+library(BayesFactor)
+
+if(!require(patchwork)) install.packages("patchwork")
+library(patchwork)
+
+if(!require(scales)) install.packages("scales")
+library(scales)
+```
+
+### SDLP
+```{r}
+# scale the data
+SDLPdata$age.c <- scale(SDLPdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = SDLPdata, SDLP~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+# Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.00361
+
+# Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(SDLPdata$age.c)^2 + residvalvar
+
+# Variance in mu difference explained by age
+V_SDLP <-1- (residvalvar/imptotalvalvar)
+V_SDLP
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, SDLPdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_SDLP <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ SDLP)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_SDLP
+```
+
+### SDVHA
+```{r}
+# scale the data
+SDVHdata$age.c <- scale(SDVHdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = SDVHdata, SDVH~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+# Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.0003094
+
+# Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(SDVHdata$age.c)^2 + residvalvar
+
+# Variance in mu difference explained by age
+V_SDVH <- 1 - (residvalvar/imptotalvalvar)
+V_SDVH
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+#Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, SDVHdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+
+
+# Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+
+
+# relationship between the effect of N-back and age
+age.nback.effect.sge_SDVH <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ SDVH)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_SDVH
+```
+
+### SDspeed
+```{r}
+# scale the data
+SDSpeeddata$age.c <- scale(SDSpeeddata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = SDSpeeddata, SDSpeed~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+# Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.02416
+
+# Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(SDSpeeddata$age.c)^2 + residvalvar
+
+
+# Variance in mu difference explained by age
+V_SD_speed<- 1 - (residvalvar/imptotalvalvar)
+V_SD_speed
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, SDSpeeddata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_SDSpeed <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ SD-speed)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_SDSpeed
+```
+
+### SCL
+```{r}
+# scale the data
+SCLdata$age.c <- scale(SCLdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = SCLdata, SCL~beforeafter*condition+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] # the estimate parameter of age.c and beforeafter interaction effect
+
+#Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.05661
+
+#Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(SCLdata$age.c)^2 + residvalvar
+
+## Variance in mu difference explained by age 
+V_SCL <- 1 - (residvalvar/imptotalvalvar)
+V_SCL
+
+# plot the data
+# computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+#Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, SCLdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+
+# Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+
+# relationship between the effect of N-back and age
+age.nback.effect.sge_SCL <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ SCL)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_SCL
+```
+
+### SDNN
+```{r}
+# scale the data
+SDNNdata$age.c <- scale(SDNNdata$age, center = T, scale = F)
+
+# fit model
+library(lmerTest)
+Model <- lmer(data = SDNNdata, SDNN~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+### calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12]  # the estimate parameter of age.c and beforeafter interaction effect
+
+#Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.01036
+
+#Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(SDNNdata$age.c)^2 + residvalvar
+
+
+## Variance in mu difference explained by age
+V_SDNN <- 1 - (residvalvar/imptotalvalvar)
+V_SDNN
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, SDNNdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_SDNN <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ SDNN)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_SDNN
+```
+
+### Breathing rate
+```{r}
+# scale the data
+RESPdata$age.c <- scale(RESPdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = RESPdata, RESP~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+## Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+## Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.002668
+
+## Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(RESPdata$age.c)^2 + residvalvar
+
+## Variance in mu difference explained by age
+V_RESP <- 1 - (residvalvar/imptotalvalvar)
+V_RESP 
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, RESPdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_breathingrate <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ breathing~rate)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_breathingrate
+```
+
+### PD
+```{r}
+# scale the data
+PDdata$age.c <- scale(PDdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = PDdata, PD~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+# Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.0003204
+
+# Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(PDdata$age.c)^2 + residvalvar
+
+# Variance in mu difference explained by age
+V_PD <- 1 - (residvalvar/imptotalvalvar)
+V_PD
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, PDdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_pupildiameter <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ pupil~diameter)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_pupildiameter
+```
+### PVRC
+```{r}
+# scale the data
+PVRCdata$age.c <- scale(PVRCdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = PVRCdata, PVRC~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+# Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 0.0002471
+
+# Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(PVRCdata$age.c)^2 + residvalvar
+
+# Variance in mu difference explained by age
+V_PVRC <- 1 - (residvalvar/imptotalvalvar)
+V_PVRC 
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval")) 
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, PVRCdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_PVRC <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ PVRC)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_PVRC
+```
+
+### Blink rate (BL)
+```{r}
+# scale the data
+BLdata$age.c <- scale(BLdata$age, center = T, scale = F)
+
+# fit model
+Model <- lmer(data = BLdata, BL~beforeafter*condition*age.c+(1+beforeafter|sub))
+summary(Model)
+
+# calculate the contribution of age 
+# Get interaction coefficient between age and beforeafter
+bXa.coeff <- fixef(Model)[12] 
+
+# Random effect in model for beforeafter - squared to compute variance 
+residvalvar <- 2.304e-06
+
+# Calculate the implied total random effect variance - interaction squared multiplied by variance in age + residual variance.
+imptotalvalvar <- bXa.coeff^2*sd(BLdata$age.c)^2 + residvalvar
+
+# Variance in mu difference explained by age
+V_BL <- 1 - (residvalvar/imptotalvalvar)
+V_BL
+
+# plot the data
+## computing random effects 
+ageranef_original <- as.data.frame(ranef(Model)) %>% 
+  dplyr::select("grp","term","condval")
+
+library(reshape2)
+ageranef <- dcast(ageranef_original, 
+                  grp~term, 
+                  timevar = c("condval"))
+
+ageranef <- ageranef %>% rename("intercept_age"="(Intercept)","slope_age"="beforeafteron","sub"="grp")
+
+
+## Create dataset with one line per person with mileage score 
+ageranef <- merge(ageranef, BLdata, by = 'sub')
+ageranef <- ageranef %>%
+  dplyr::group_by(sub) %>%
+  dplyr::slice(1) %>%
+  dplyr::select(sub, age.c, intercept_age, slope_age)
+
+
+
+## Person-specific implied total n-back effects for model accounting for age
+ranef.age.pred.tot <- fixef(Model)[2] + # fixed effect for n-back
+  fixef(Model)[12] * ageranef$age.c +   # fixed effect for n-back X age interaction # scale of age 
+  ageranef$slope_age # estimate random effect of slopes
+
+
+
+## relationship between the effect of N-back and age
+age.nback.effect.sge_blinkrate <- ggplot(ageranef, aes(age.c, ranef.age.pred.tot)) + 
+  geom_vline(xintercept = 0, size = .5, color = "black", linetype="solid") +
+  geom_hline(yintercept = mean(ranef.age.pred.tot), size = .5, color = "black", linetype="solid") +
+  geom_jitter(height = 0, width = 0, size = 4,
+              shape = 21, colour = "black", fill = viridis(5)[3], alpha = .95, stroke = 1) + 
+  stat_smooth(method = 'lm', ci = T, color = viridis(5)[3], size = 1) + 
+  xlab("Age (mean centered)") +
+  ylab(expression("Implied total heterogeneity of "~ blink~rate)) +
+  #ylim(-.15, .1) +
+  theme_bw() +
+  theme(legend.position = "bottom", legend.direction = "horizontal", axis.title.x = element_text(size = 11), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 11), axis.text.y = element_text(size = 15), title = element_text(size = 18), legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.key = element_blank(), legend.key.width = unit(0.3, 'cm'), legend.key.size = unit(0.1, 'cm'), plot.title = element_text(size = 7.5, face = "bold"), strip.text = element_text(face = "bold", size = 10))
+age.nback.effect.sge_blinkrate
+```
+
+## 3.6 Subjective ratings
+### 3.6.1 Workload
+```{r}
+# read data
+MWdata <- read_excel("/Users/betty/Desktop/Workload(processed).xlsx", sheet=1)
+
+# fit model
+Model <- lmer(data = MWdata, meanscore ~ agegroup2*condition*dimension + (1|sub))
+summary(Model)
+anova(Model)
+
+# the post hoc analysis for the main effect of countermeasure type
+pwc.workload.condition <- MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE)
+pwc.workload.condition 
+
+# the post hoc analysis for the main effect of workload dimension
+pwc.workload.dimension <- MWdata %>% pairwise_t_test(meanscore ~ dimension, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc.workload.dimension
+
+# the simple simple effect analysis for the interaction effect of age group, countermeasure type, and workload dimension
+## younger drivers (condition X dimension)
+filter.age.Y <- filter(MWdata,agegroup2 =="Y") 
+### fit model
+Model <- lmer(data = filter.age.Y, meanscore~condition*dimension+(1|sub))
+summary(Model)
+anova(Model)
+### pairwise comparisons of five countermeasure types under different workload dimensions
+#### (1) mental
+filter1.MWdata<- filter(filter.age.Y, dimension =="mental") 
+library(lmerTest)
+Model <- lmer(data = filter1.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter1.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (2) physical
+filter2.MWdata<- filter(filter.age.Y, dimension =="physical") 
+Model <- lmer(data = filter2.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter2.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (3) time
+filter3.MWdata<- filter(filter.age.Y, dimension =="time") 
+Model <- lmer(data = filter3.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter3.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (4) effort
+filter4.MWdata<- filter(filter.age.Y, dimension =="effort") 
+Model <- lmer(data = filter4.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter4.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (5) frustration
+filter5.MWdata<- filter(filter.age.Y, dimension =="frustration") 
+Model <- lmer(data = filter5.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter5.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (6) performance
+filter6.MWdata<- filter(filter.age.Y, dimension =="performance")
+Model <- lmer(data = filter6.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter6.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+
+
+## middle-aged drivers (condition X dimension)
+filter.age.M <- filter(MWdata,agegroup2 =="M") 
+### fit model
+Model <- lmer(data = filter.age.M, meanscore~condition*dimension+(1|sub))
+summary(Model)
+anova(Model)
+### pairwise comparisons of five countermeasure types under different workload dimensions
+#### (1) mental
+filter1.MWdata<- filter(filter.age.M, dimension =="mental") 
+Model <- lmer(data = filter1.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter1.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (2) physical
+filter2.MWdata<- filter(filter.age.M, dimension =="physical") 
+Model <- lmer(data = filter2.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter2.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (3) time
+filter3.MWdata<- filter(filter.age.M, dimension =="time") 
+Model <- lmer(data = filter3.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter3.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (4) effort
+filter4.MWdata<- filter(filter.age.M, dimension =="effort") 
+Model <- lmer(data = filter4.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter4.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (5) frustration
+filter5.MWdata<- filter(filter.age.M, dimension =="frustration") 
+Model <- lmer(data = filter5.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter5.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+#### (6) performance
+filter6.MWdata<- filter(filter.age.M, dimension =="performance")
+Model <- lmer(data = filter6.MWdata, meanscore~condition+(1|sub))
+summary(Model)
+anova(Model)
+pwc <- filter6.MWdata %>% pairwise_t_test(meanscore ~ condition, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+```
+
+
+### 3.6.2 Acceptance
+```{r}
+# read data
+USdata <- read_excel("/Users/betty/Desktop/Acceptance (processed).xlsx", sheet=1)
+
+# as factors & groupby
+USdata$condition <- as.factor(USdata$condition)
+USdata$agegroup2 <- as.factor(USdata$agegroup2)
+USdata %>%
+  group_by(agegroup2,condition)
+
+# Analysis of younger drivers
+filter.Y<- filter(USdata,agegroup2 =="Y") 
+
+## main effect of countermeasure type on usefulness
+Us.fried.useful.young <- filter.Y %>% friedman_test(usefulness ~ condition |sub)
+Us.fried.useful.young
+## the post hoc analysis for the main effect of countermeasure type on usefulness
+pwc.useful.young <- filter.Y %>%  wilcox_test(usefulness ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.useful.young
+
+## main effect of countermeasure type on satisfaction
+Us.fried.satisfaction.young <- filter.Y %>% friedman_test(satisfaction ~ condition |sub)
+Us.fried.satisfaction.young
+## the post hoc analysis for the main effect of countermeasure type on satisfaction
+pwc.satisfaction.young <- filter.Y %>%  wilcox_test(satisfaction ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.satisfaction.young
+
+
+# Analysis of middle-aged drivers
+filter.M <- filter(USdata,agegroup2 =="M") 
+## main effect of countermeasure type on usefulness
+Us.fried.useful.middle <- filter.M %>% friedman_test(usefulness ~ condition |sub)
+Us.fried.useful.middle
+## the post hoc analysis for the main effect of countermeasure type on usefulness
+pwc.useful.middle <- filter.M %>%  wilcox_test(usefulness ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.useful.middle
+
+## main effect of countermeasure type on satisfaction
+Us.fried.satisfaction.middle <- filter.M %>% friedman_test(satisfaction ~ condition |sub)
+Us.fried.satisfaction.middle
+## the post hoc analysis for the main effect of countermeasure type on usefulness
+pwc.satisfaction.middle <- filter.M %>%  wilcox_test(satisfaction ~ condition, paired = TRUE, p.adjust.method = "bonferroni")
+pwc.satisfaction.middle
+```
